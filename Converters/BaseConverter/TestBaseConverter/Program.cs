@@ -13,8 +13,6 @@ public class Program
 {
   public static void Main()
   {
-    //UnitTest.Start();
-
     TestBaseConverter();
     TestBaseConverterStress1();
     TestBaseConverterStress2();
