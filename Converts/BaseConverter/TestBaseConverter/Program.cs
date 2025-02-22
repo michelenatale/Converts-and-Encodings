@@ -6,6 +6,7 @@ using System.Diagnostics;
 
 namespace BaseConverterTest;
 
+using System.Text;
 using TestBaseConverter.BaseConverter;
 using static michele.natale.Converters.Services;
 
@@ -13,6 +14,8 @@ public class Program
 {
   public static void Main()
   {
+    UnitTest.Start();
+
     TestBaseConverter();
     TestBaseConverterStress1();
     TestBaseConverterStress2();
@@ -20,6 +23,8 @@ public class Program
     TestBase2();
     TestBase8();
     TestBase16();
+
+    TestBaseConverterText();
 
     Console.WriteLine();
     Console.WriteLine("FINISH");
@@ -206,8 +211,8 @@ public class Program
     var hexs = BaseConverter.ToBaseX(number, basex);
     var bnumber = BaseConverter.FromBaseX(hexs, basex);
     Console.WriteLine($"BaseConverter dec: {number}");
-    Console.WriteLine($"BaseConverter hex: { string.Join("", hexs.Select(x => subs[x]))}");
-    Console.WriteLine($"BaseConverter dec: { string.Join("", bnumber)}");
+    Console.WriteLine($"BaseConverter hex: {string.Join("", hexs.Select(x => subs[x]))}");
+    Console.WriteLine($"BaseConverter dec: {string.Join("", bnumber)}");
     Console.WriteLine();
 
     hexs = BaseConverterBigInteger.ToBaseX(number, basex);
@@ -215,11 +220,50 @@ public class Program
     Console.WriteLine($"BaseConverterBigInteger dec: {number}");
     Console.WriteLine($"BaseConverterBigInteger hex: {string.Join("", hexs.Select(x => subs[x]))}");
     Console.WriteLine($"BaseConverterBigInteger dec: {string.Join("", bnumber)}");
-    Console.WriteLine(); 
+    Console.WriteLine();
 
   }
 
+  private static void TestBaseConverterText()
+  {
 
+    Console.WriteLine($"{nameof(TestBaseConverterText)}: ");
+
+    var rand = Random.Shared;
+    var alphatext = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+    var sw = Stopwatch.StartNew();
+    var (startbase, targetbase) = RngBases();
+
+    var sz = 1024;
+    var rng_chars = rand.GetItems<char>(alphatext, sz);
+    var rng_str = string.Join("", rng_chars);
+    var bytes_base_256 = Encoding.UTF8.GetBytes(rng_str);
+
+    var sbytes1 = BaseConverter.Converter(bytes_base_256, 256, startbase);
+    var tbase1 = BaseConverter.Converter(sbytes1, startbase, targetbase);
+    var decipher_sbytes_1 = BaseConverter.Converter(tbase1, targetbase, startbase);
+    var rbytes1 = BaseConverter.Converter(tbase1, targetbase, 256);
+
+    sw.Stop();
+    Console.WriteLine($"BaseConverter Text: startbase = {startbase}; targetbase = {targetbase}; size = {sz}; t = {sw.ElapsedMilliseconds} ms");
+
+    // *********** *********** *********** *********** *********** 
+    // *********** *********** *********** *********** *********** 
+    // *********** *********** *********** *********** *********** 
+
+    sw = Stopwatch.StartNew();
+    var sbytes2 = BaseConverterBigInteger.Converter(bytes_base_256, 256, startbase);
+    var tbase2 = BaseConverterBigInteger.Converter(sbytes2, startbase, targetbase);
+    var decipher_sbytes_2 = BaseConverterBigInteger.Converter(tbase2, targetbase, startbase);
+    var rbytes2 = BaseConverterBigInteger.Converter(tbase2, targetbase, 256);
+
+    sw.Stop();
+    if (!rbytes1.SequenceEqual(rbytes2)) throw new Exception();
+
+    Console.WriteLine($"BaseConverterBigInteger Text: startbase = {startbase}; targetbase = {targetbase}; size = {sz}; t = {sw.ElapsedMilliseconds} ms\n");
+
+  }
 
   private static (int StartBase, int TargetBase) RngBases()
   {
