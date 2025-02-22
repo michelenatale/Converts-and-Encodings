@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
 
-namespace TestBaseConverter.BaseConverter; 
+namespace michele.natale.Converts;
 
 public class BaseConverterBigInteger
 {
@@ -36,7 +36,7 @@ public class BaseConverterBigInteger
   [MethodImpl(MethodImplOptions.AggressiveInlining)]
   public static byte[] ToBaseX(BigInteger base10, int basex)
   {
-    //From Base 10 to Base X
+    //From Base 10 to Base X (Reverse !)
     if (basex == 10) return [.. base10.ToString().Select(x => (byte)(x - 48))];
 
     var tmp = new Stack<byte>();

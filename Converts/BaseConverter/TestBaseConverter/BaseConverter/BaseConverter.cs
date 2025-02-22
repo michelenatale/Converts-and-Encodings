@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
 
-namespace TestBaseConverter.BaseConverter;
+namespace michele.natale.Converts;
  
 
 public class BaseConverter
