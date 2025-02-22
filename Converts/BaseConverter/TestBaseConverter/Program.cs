@@ -1,19 +1,21 @@
 ﻿
 
 
+using System.Text; 
 using System.Numerics;
 using System.Diagnostics;
 
 namespace BaseConverterTest;
 
-using System.Text;
-using TestBaseConverter.BaseConverter;
+using michele.natale.Converts;
 using static michele.natale.Converters.Services;
 
 public class Program
 {
   public static void Main()
   {
+    UnitTest.Start();
+
     TestBaseConverter();
     TestBaseConverterStress1();
     TestBaseConverterStress2();
