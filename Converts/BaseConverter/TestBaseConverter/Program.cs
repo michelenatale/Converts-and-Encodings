@@ -240,7 +240,7 @@ public class Program
     var decode1 = BaseConverter.FromUtfBaseX(encode1,startbase);
 
     sw.Stop();
-    Console.WriteLine($"BaseConverter Text: startbase = {startbase}; targetbase = {targetbase}; size = {sz}; t = {sw.ElapsedMilliseconds} ms");
+    Console.WriteLine($"BaseConverter Text: startbase = text256; targetbase = {targetbase}; size = {sz}; t = {sw.ElapsedMilliseconds} ms");
 
     // *********** *********** *********** *********** *********** 
     // *********** *********** *********** *********** *********** 
@@ -251,7 +251,7 @@ public class Program
     var decode2 = BaseConverterBigInteger.FromUtfBaseX(encode2, startbase);
 
     sw.Stop();
-    Console.WriteLine($"BaseConverterBigInteger Text: startbase = {startbase}; targetbase = {targetbase}; size = {sz}; t = {sw.ElapsedMilliseconds} ms\n");
+    Console.WriteLine($"BaseConverterBigInteger Text: startbase = text256; targetbase = {targetbase}; size = {sz}; t = {sw.ElapsedMilliseconds} ms\n");
   }
 
   private static void TestBaseConverterText2()
