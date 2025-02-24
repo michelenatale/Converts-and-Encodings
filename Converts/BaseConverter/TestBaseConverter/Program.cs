@@ -14,6 +14,8 @@ public class Program
 {
   public static void Main()
   {
+    UnitTest.Start();
+
     TestBaseConverter();
     TestBaseConverterStress1();
     TestBaseConverterStress2();
@@ -225,6 +227,8 @@ public class Program
 
   private static void TestBaseConverterText1()
   {
+    Console.WriteLine($"{nameof(TestBaseConverterText1)}: ");
+
     var alphatext = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
     var sz = 1024;
@@ -249,12 +253,14 @@ public class Program
     var decode2 = BaseConverterBigInteger.FromUtfBaseX(encode2, startbase);
 
     sw.Stop();
+    //if (!rng_str.SequenceEqual(decode1)) throw new Exception();
+    //if (!decode1.SequenceEqual(decode2)) throw new Exception();
+
     Console.WriteLine($"BaseConverterBigInteger Text: startbase = {startbase}; targetbase = {targetbase}; size = {sz}; t = {sw.ElapsedMilliseconds} ms\n");
   }
 
   private static void TestBaseConverterText2()
-  {
-
+  { 
     Console.WriteLine($"{nameof(TestBaseConverterText2)}: ");
 
     var rand = Random.Shared;
