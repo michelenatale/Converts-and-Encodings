@@ -1,7 +1,11 @@
-﻿using System.Numerics;
+﻿
+using System.Text;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 
+
 namespace michele.natale.Converts;
+
 
 public class BaseConverterBigInteger
 {
@@ -21,8 +25,8 @@ public class BaseConverterBigInteger
     //From Base X to Base 10
     if (basex == 10) return [.. bytes.ToArray()];
 
-    var length = bytes.Length;
     var bi = BigInteger.Zero;
+    var length = bytes.Length;
     for (var i = 0; i < length; i++)
       bi += bytes[^(1 + i)] * BigInteger.Pow(basex, i);
 
@@ -49,4 +53,14 @@ public class BaseConverterBigInteger
     var result = tmp.ToArray(); 
     return result;
   }
+
+
+  [MethodImpl(MethodImplOptions.AggressiveInlining)]
+  public static byte[] ToUtfBaseX(ReadOnlySpan<char> chars, int basex) =>
+    Converter(Encoding.UTF8.GetBytes(chars.ToArray()), 256, basex);
+
+  [MethodImpl(MethodImplOptions.AggressiveInlining)]
+  public static string FromUtfBaseX(ReadOnlySpan<byte> bytes, int basex) =>
+    Encoding.UTF8.GetString(Converter(bytes, basex, 256));
+
 }

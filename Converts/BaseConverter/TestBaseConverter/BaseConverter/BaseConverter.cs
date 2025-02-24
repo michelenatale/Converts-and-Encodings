@@ -1,8 +1,9 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace michele.natale.Converts;
- 
+
 
 public class BaseConverter
 {
@@ -33,6 +34,14 @@ public class BaseConverter
 
     return Converter(bytes, basex, 10);
   }
+
+  [MethodImpl(MethodImplOptions.AggressiveInlining)]
+  public static byte[] ToUtfBaseX(ReadOnlySpan<char> chars, int basex) =>
+    Converter(Encoding.UTF8.GetBytes(chars.ToArray()), 256, basex);
+
+  [MethodImpl(MethodImplOptions.AggressiveInlining)]
+  public static string FromUtfBaseX(ReadOnlySpan<byte> bytes, int basex) =>
+    Encoding.UTF8.GetString(Converter(bytes, basex, 256));
 
   [MethodImpl(MethodImplOptions.AggressiveInlining)]
   public static byte[] Converter(

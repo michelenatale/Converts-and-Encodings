@@ -1,7 +1,7 @@
 ﻿
 
 
-using System.Text; 
+using System.Text;
 using System.Numerics;
 using System.Diagnostics;
 
@@ -14,6 +14,8 @@ public class Program
 {
   public static void Main()
   {
+    UnitTest.Start();
+
     TestBaseConverter();
     TestBaseConverterStress1();
     TestBaseConverterStress2();
@@ -22,7 +24,8 @@ public class Program
     TestBase8();
     TestBase16();
 
-    TestBaseConverterText();
+    TestBaseConverterText1();
+    TestBaseConverterText2();
 
     Console.WriteLine();
     Console.WriteLine("FINISH");
@@ -222,15 +225,46 @@ public class Program
 
   }
 
-  private static void TestBaseConverterText()
+  private static void TestBaseConverterText1()
+  {
+    var alphatext = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+    var sz = 1024;
+    var rand = Random.Shared;
+    var targetbase = rand.Next(2, 255);//256 is startbase
+    var rng_str = new string(rand.GetItems<char>(alphatext, sz));
+
+    var startbase = targetbase;
+    var sw = Stopwatch.StartNew();
+    var encode1 = BaseConverter.ToUtfBaseX(rng_str, targetbase);
+    var decode1 = BaseConverter.FromUtfBaseX(encode1,startbase);
+
+    sw.Stop();
+    Console.WriteLine($"BaseConverter Text: startbase = {startbase}; targetbase = {targetbase}; size = {sz}; t = {sw.ElapsedMilliseconds} ms");
+
+    // *********** *********** *********** *********** *********** 
+    // *********** *********** *********** *********** *********** 
+    // *********** *********** *********** *********** *********** 
+
+    sw = Stopwatch.StartNew();
+    var encode2 = BaseConverterBigInteger.ToUtfBaseX(rng_str, targetbase);
+    var decode2 = BaseConverterBigInteger.FromUtfBaseX(encode2, startbase);
+
+    sw.Stop();
+    if (!rng_str.SequenceEqual(decode1)) throw new Exception();
+    if (!decode1.SequenceEqual(decode2)) throw new Exception();
+
+    Console.WriteLine($"BaseConverterBigInteger Text: startbase = {startbase}; targetbase = {targetbase}; size = {sz}; t = {sw.ElapsedMilliseconds} ms\n");
+  }
+
+  private static void TestBaseConverterText2()
   {
 
-    Console.WriteLine($"{nameof(TestBaseConverterText)}: ");
+    Console.WriteLine($"{nameof(TestBaseConverterText2)}: ");
 
     var rand = Random.Shared;
     var alphatext = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
-    var sw = Stopwatch.StartNew();
     var (startbase, targetbase) = RngBases();
 
     var sz = 1024;
@@ -238,6 +272,7 @@ public class Program
     var rng_str = string.Join("", rng_chars);
     var bytes_base_256 = Encoding.UTF8.GetBytes(rng_str);
 
+    var sw = Stopwatch.StartNew();
     var sbytes1 = BaseConverter.Converter(bytes_base_256, 256, startbase);
     var tbase1 = BaseConverter.Converter(sbytes1, startbase, targetbase);
     var decipher_sbytes_1 = BaseConverter.Converter(tbase1, targetbase, startbase);
@@ -258,7 +293,6 @@ public class Program
 
     sw.Stop();
     if (!rbytes1.SequenceEqual(rbytes2)) throw new Exception();
-
     Console.WriteLine($"BaseConverterBigInteger Text: startbase = {startbase}; targetbase = {targetbase}; size = {sz}; t = {sw.ElapsedMilliseconds} ms\n");
 
   }
