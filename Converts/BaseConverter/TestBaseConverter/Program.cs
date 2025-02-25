@@ -8,12 +8,15 @@ using System.Diagnostics;
 namespace BaseConverterTest;
 
 using michele.natale.Converts;
+using System.Net.WebSockets;
 using static michele.natale.Converters.Services;
 
 public class Program
 {
   public static void Main()
   {
+    UnitTest.Start();
+
     TestBaseConverter();
     TestBaseConverterStress1();
     TestBaseConverterStress2();
@@ -226,18 +229,16 @@ public class Program
   private static void TestBaseConverterText1()
   {
     Console.WriteLine($"{nameof(TestBaseConverterText1)}: ");
-
-    var alphatext = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-
+ 
     var sz = 1024;
     var rand = Random.Shared;
+    var rng_str = RngAlphaText(sz);
     var targetbase = rand.Next(2, 255);//256 is startbase
-    var rng_str = new string(rand.GetItems<char>(alphatext, sz));
 
     var startbase = targetbase;
     var sw = Stopwatch.StartNew();
     var encode1 = BaseConverter.ToUtfBaseX(rng_str, targetbase);
-    var decode1 = BaseConverter.FromUtfBaseX(encode1,startbase);
+    var decode1 = BaseConverter.FromUtfBaseX(encode1, startbase);
 
     sw.Stop();
     Console.WriteLine($"BaseConverter Text: startbase = text256; targetbase = {targetbase}; size = {sz}; t = {sw.ElapsedMilliseconds} ms");
@@ -251,21 +252,20 @@ public class Program
     var decode2 = BaseConverterBigInteger.FromUtfBaseX(encode2, startbase);
 
     sw.Stop();
+    //if (!rng_str.SequenceEqual(decode1)) throw new Exception();
+    //if (!decode1.SequenceEqual(decode2)) throw new Exception();
+
     Console.WriteLine($"BaseConverterBigInteger Text: startbase = text256; targetbase = {targetbase}; size = {sz}; t = {sw.ElapsedMilliseconds} ms\n");
   }
 
   private static void TestBaseConverterText2()
-  { 
+  {
     Console.WriteLine($"{nameof(TestBaseConverterText2)}: ");
 
+    var sz = 1024; 
     var rand = Random.Shared;
-    var alphatext = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-
+    var rng_str = RngAlphaText(sz);
     var (startbase, targetbase) = RngBases();
-
-    var sz = 1024;
-    var rng_chars = rand.GetItems<char>(alphatext, sz);
-    var rng_str = string.Join("", rng_chars);
     var bytes_base_256 = Encoding.UTF8.GetBytes(rng_str);
 
     var sw = Stopwatch.StartNew();
@@ -290,7 +290,6 @@ public class Program
     sw.Stop();
     if (!rbytes1.SequenceEqual(rbytes2)) throw new Exception();
     Console.WriteLine($"BaseConverterBigInteger Text: startbase = {startbase}; targetbase = {targetbase}; size = {sz}; t = {sw.ElapsedMilliseconds} ms\n");
-
   }
 
   private static (int StartBase, int TargetBase) RngBases()
@@ -306,5 +305,13 @@ public class Program
     }
 
     return (startbase, targetbase);
+  }
+
+  private static string RngAlphaText(int size)
+  {
+    var rand = Random.Shared;
+    var alphatext = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+    return new string(rand.GetItems<char>(alphatext, size));
   }
 }
