@@ -15,8 +15,6 @@ public class Program
 {
   public static void Main()
   {
-    UnitTest.Start();
-
     TestBaseConverter();
     TestBaseConverterStress1();
     TestBaseConverterStress2();
@@ -252,9 +250,6 @@ public class Program
     var decode2 = BaseConverterBigInteger.FromUtfBaseX(encode2, startbase);
 
     sw.Stop();
-    //if (!rng_str.SequenceEqual(decode1)) throw new Exception();
-    //if (!decode1.SequenceEqual(decode2)) throw new Exception();
-
     Console.WriteLine($"BaseConverterBigInteger Text: startbase = text256; targetbase = {targetbase}; size = {sz}; t = {sw.ElapsedMilliseconds} ms\n");
   }
 
