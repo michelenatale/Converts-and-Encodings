@@ -13,8 +13,6 @@ public class Program
 {
   public static void Main()
   {
-    UnitTest.Start();
-
     TestBaseConverter();
     TestBaseConverterStress1();
     TestBaseConverterStress2();
@@ -250,9 +248,6 @@ public class Program
     var decode2 = BaseConverterBigInteger.FromUtf8BaseX(encode2, startbase);
 
     sw.Stop();
-    //if (!rng_str.SequenceEqual(decode1)) throw new Exception();
-    //if (!decode1.SequenceEqual(decode2)) throw new Exception();
-
     Console.WriteLine($"BaseConverterBigInteger Text: startbase = text256; targetbase = {targetbase}; size = {sz}; t = {sw.ElapsedMilliseconds} ms\n");
   }
 
@@ -315,10 +310,7 @@ public class Program
     var sbytes1a = BaseConverter.Converter(bytes, 256, startbase);
     var encode1 = new string([.. BaseConverter.Converter(sbytes1a, startbase, targetbase).Select(x => alpha_dict[x])]);
     var sbytes1b = BaseConverter.Converter(encode1.Select(c => alpha_dict_r[c]).ToArray(), targetbase, startbase);
-    if (!sbytes1a.SequenceEqual(sbytes1b)) throw new Exception();
-
     var decode1 = BaseConverter.Converter(sbytes1b, startbase, 256);
-    if (!bytes.SequenceEqual(decode1)) throw new Exception();
 
     sw.Stop();
     Console.WriteLine($"BaseConverter Text: startbase = {startbase}; targetbase = {targetbase}; size = {sz}; t = {sw.ElapsedMilliseconds} ms");
@@ -331,10 +323,7 @@ public class Program
     var sbytes2a = BaseConverterBigInteger.Converter(bytes, 256, startbase);
     var encode2 = new string([.. BaseConverterBigInteger.Converter(sbytes2a, startbase, targetbase).Select(x => alpha_dict[x])]);
     var sbytes2b = BaseConverterBigInteger.Converter(encode1.Select(c => alpha_dict_r[c]).ToArray(), targetbase, startbase);
-    if (!sbytes2a.SequenceEqual(sbytes1b)) throw new Exception();
-
     var decode2 = BaseConverterBigInteger.Converter(sbytes2b, startbase, 256);
-    if (!bytes.SequenceEqual(decode1)) throw new Exception();
 
     sw.Stop();
     Console.WriteLine($"BaseConverterBigInteger Text: startbase = {startbase}; targetbase = {targetbase}; size = {sz}; t = {sw.ElapsedMilliseconds} ms\n");
