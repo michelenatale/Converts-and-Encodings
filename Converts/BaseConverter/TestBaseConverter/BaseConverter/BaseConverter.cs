@@ -36,11 +36,11 @@ public class BaseConverter
   }
 
   [MethodImpl(MethodImplOptions.AggressiveInlining)]
-  public static byte[] ToUtfBaseX(ReadOnlySpan<char> chars, int basex) =>
+  public static byte[] ToUtf8BaseX(ReadOnlySpan<char> chars, int basex) =>
     Converter(Encoding.UTF8.GetBytes(chars.ToArray()), 256, basex);
 
   [MethodImpl(MethodImplOptions.AggressiveInlining)]
-  public static string FromUtfBaseX(ReadOnlySpan<byte> bytes, int basex) =>
+  public static string FromUtf8BaseX(ReadOnlySpan<byte> bytes, int basex) =>
     Encoding.UTF8.GetString(Converter(bytes, basex, 256));
 
   [MethodImpl(MethodImplOptions.AggressiveInlining)]
