@@ -1,6 +1,5 @@
 ﻿
 
-
 using System.Text;
 using System.Numerics;
 using System.Diagnostics;
@@ -8,13 +7,14 @@ using System.Diagnostics;
 namespace BaseConverterTest;
 
 using michele.natale.Converts;
-using System.Net.WebSockets;
 using static michele.natale.Converters.Services;
 
 public class Program
 {
   public static void Main()
   {
+    UnitTest.Start();
+
     TestBaseConverter();
     TestBaseConverterStress1();
     TestBaseConverterStress2();
@@ -25,6 +25,8 @@ public class Program
 
     TestBaseConverterText1();
     TestBaseConverterText2();
+
+    TestBaseConverterAlphabet256();
 
     Console.WriteLine();
     Console.WriteLine("FINISH");
@@ -175,7 +177,6 @@ public class Program
     Console.WriteLine($"BaseConverterBigInteger bits: {string.Join("", bits)}");
     Console.WriteLine($"BaseConverterBigInteger dec: {string.Join("", bnumber)}");
     Console.WriteLine();
-
   }
 
   private static void TestBase8()
@@ -221,13 +222,12 @@ public class Program
     Console.WriteLine($"BaseConverterBigInteger hex: {string.Join("", hexs.Select(x => subs[x]))}");
     Console.WriteLine($"BaseConverterBigInteger dec: {string.Join("", bnumber)}");
     Console.WriteLine();
-
   }
 
   private static void TestBaseConverterText1()
   {
     Console.WriteLine($"{nameof(TestBaseConverterText1)}: ");
- 
+
     var sz = 1024;
     var rand = Random.Shared;
     var rng_str = RngAlphaText(sz);
@@ -235,8 +235,8 @@ public class Program
 
     var startbase = targetbase;
     var sw = Stopwatch.StartNew();
-    var encode1 = BaseConverter.ToUtfBaseX(rng_str, targetbase);
-    var decode1 = BaseConverter.FromUtfBaseX(encode1, startbase);
+    var encode1 = BaseConverter.ToUtf8BaseX(rng_str, targetbase);
+    var decode1 = BaseConverter.FromUtf8BaseX(encode1, startbase);
 
     sw.Stop();
     Console.WriteLine($"BaseConverter Text: startbase = text256; targetbase = {targetbase}; size = {sz}; t = {sw.ElapsedMilliseconds} ms");
@@ -246,10 +246,13 @@ public class Program
     // *********** *********** *********** *********** *********** 
 
     sw = Stopwatch.StartNew();
-    var encode2 = BaseConverterBigInteger.ToUtfBaseX(rng_str, targetbase);
-    var decode2 = BaseConverterBigInteger.FromUtfBaseX(encode2, startbase);
+    var encode2 = BaseConverterBigInteger.ToUtf8BaseX(rng_str, targetbase);
+    var decode2 = BaseConverterBigInteger.FromUtf8BaseX(encode2, startbase);
 
     sw.Stop();
+    //if (!rng_str.SequenceEqual(decode1)) throw new Exception();
+    //if (!decode1.SequenceEqual(decode2)) throw new Exception();
+
     Console.WriteLine($"BaseConverterBigInteger Text: startbase = text256; targetbase = {targetbase}; size = {sz}; t = {sw.ElapsedMilliseconds} ms\n");
   }
 
@@ -257,11 +260,12 @@ public class Program
   {
     Console.WriteLine($"{nameof(TestBaseConverterText2)}: ");
 
-    var sz = 1024; 
+    var sz = 1024;
     var rand = Random.Shared;
     var rng_str = RngAlphaText(sz);
     var (startbase, targetbase) = RngBases();
     var bytes_base_256 = Encoding.UTF8.GetBytes(rng_str);
+    if (bytes_base_256[0] == 0) bytes_base_256[0]++;
 
     var sw = Stopwatch.StartNew();
     var sbytes1 = BaseConverter.Converter(bytes_base_256, 256, startbase);
@@ -284,6 +288,55 @@ public class Program
 
     sw.Stop();
     if (!rbytes1.SequenceEqual(rbytes2)) throw new Exception();
+    Console.WriteLine($"BaseConverterBigInteger Text: startbase = {startbase}; targetbase = {targetbase}; size = {sz}; t = {sw.ElapsedMilliseconds} ms\n");
+  }
+
+  private static void TestBaseConverterAlphabet256()
+  {
+    //The alphabetical compilation here consists of the German, Greek, Arabic,
+    //Tifinagh, Glagolitic and Armenian alphabets. It is only intended as a
+    //possibility to ensure appropriate substitutions as text.
+    //It does not correspond to any standardization or the like.
+
+    Console.WriteLine($"{nameof(TestBaseConverterAlphabet256)}: ");
+
+    var sz = 1024;
+    var rand = Random.Shared;
+    var bytes = RngBytes(sz);
+    int[] notbases = [2, 8, 16, 64,];
+    var (startbase, targetbase) = RngBases();
+    var alpha_dict = Alphabet256.Alphabet_256;
+    var alpha_dict_r = Alphabet256.Alphabet_256R;
+
+    while (notbases.Contains(startbase) || notbases.Contains(targetbase))
+      (startbase, targetbase) = RngBases();
+
+    var sw = Stopwatch.StartNew();
+    var sbytes1a = BaseConverter.Converter(bytes, 256, startbase);
+    var encode1 = new string([.. BaseConverter.Converter(sbytes1a, startbase, targetbase).Select(x => alpha_dict[x])]);
+    var sbytes1b = BaseConverter.Converter(encode1.Select(c => alpha_dict_r[c]).ToArray(), targetbase, startbase);
+    if (!sbytes1a.SequenceEqual(sbytes1b)) throw new Exception();
+
+    var decode1 = BaseConverter.Converter(sbytes1b, startbase, 256);
+    if (!bytes.SequenceEqual(decode1)) throw new Exception();
+
+    sw.Stop();
+    Console.WriteLine($"BaseConverter Text: startbase = {startbase}; targetbase = {targetbase}; size = {sz}; t = {sw.ElapsedMilliseconds} ms");
+
+    // *********** *********** *********** *********** *********** 
+    // *********** *********** *********** *********** *********** 
+    // *********** *********** *********** *********** *********** 
+
+    sw = Stopwatch.StartNew();
+    var sbytes2a = BaseConverterBigInteger.Converter(bytes, 256, startbase);
+    var encode2 = new string([.. BaseConverterBigInteger.Converter(sbytes2a, startbase, targetbase).Select(x => alpha_dict[x])]);
+    var sbytes2b = BaseConverterBigInteger.Converter(encode1.Select(c => alpha_dict_r[c]).ToArray(), targetbase, startbase);
+    if (!sbytes2a.SequenceEqual(sbytes1b)) throw new Exception();
+
+    var decode2 = BaseConverterBigInteger.Converter(sbytes2b, startbase, 256);
+    if (!bytes.SequenceEqual(decode1)) throw new Exception();
+
+    sw.Stop();
     Console.WriteLine($"BaseConverterBigInteger Text: startbase = {startbase}; targetbase = {targetbase}; size = {sz}; t = {sw.ElapsedMilliseconds} ms\n");
   }
 
