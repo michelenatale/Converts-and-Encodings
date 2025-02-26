@@ -1,4 +1,6 @@
-﻿namespace michele.natale.Converters;
+﻿
+
+namespace michele.natale.Converters;
 
 public partial class Services
 {
@@ -10,11 +12,29 @@ public partial class Services
     //possibility to ensure appropriate substitutions as text.
     //It does not correspond to any standardization or the like.
 
+    //For me, characters are not always the real solution, because in Dotnet,
+    //2 bytes (short) have to be allocated for one character. This is also the
+    //reason why I much prefer to work with bytes, because bytes are numerical
+    //and are considered unprecedentedly primitive (8 bit = 1 byte).
+
+
+    //Die vorliegende alphabetische Zusammenstellung besteht aus dem deutschen,
+    //griechischen, arabischen, tifinaghischen, glagolitischen und armenischen
+    //Alphabet.Sie ist nur als eine Möglichkeit gedacht, entsprechende 
+    //Substitutionen bei Text zu gewährleisten.
+    //Sie entspricht keiner Normierung oder dergleichen.
+
+    //Für mich sind Characters nicht immer die wahre Lösung, da in Dotnet, für
+    //ein Zeichen 2 Byte (short) vergeben werden müssen. Das ist auch der Grund,
+    //warum ich viel lieber mit Bytes arbeite, weil Bytes numerisch sind, und
+    //beispiellos als primitiv (8 bit = 1 byte) gelten.
+
     public static Dictionary<byte, char> Alphabet_256 =>
       Enumerable.Range(0, 256).Select(x => ((byte)x, ToAlphabet256[x])).ToDictionary();
 
     public static Dictionary<char, byte> Alphabet_256R =>
       Alphabet_256.ToDictionary(x => x.Value, x => x.Key);
+
     public static char[] ToAlphabet256 =>
     [
       'A',  'B',  'C',  'D',  'E',  'F',  'G',  'H',  'I',  'J',  'K',  'L',  'M',  'N',  'O',  'P',  'Q',  'R',  'S',  'T',  'U',  'V',  'W',  'X',  'Y',  'Z',  'a',  'b',  'c',  'd',  'e',  'f',  'g',  'h',  'i',  'j',  'k',  'l',  'm',  'n',  'o',  'p',  'q',  'r',  's',  't',  'u',  'v',  'w',  'x',  'y',  'z',  '0',  '1',  '2',  '3',  '4',  '5',  '6',  '7',  '8',  '9',
