@@ -4,8 +4,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 
 namespace ReedSolomonCodeTest;
-
-using TestReedSolomonCode;
+ 
 using System.Security.Cryptography;
 using michele.natale.ChannelCodings;
 
