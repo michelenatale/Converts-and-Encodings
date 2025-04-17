@@ -6,4 +6,3 @@ The possible [numeral system](https://en.wikipedia.org/wiki/Numeral_system) here
 
 There are two different methods here. The first is a converter that performs the calculation from left to right and is very fast. The second converter is the typical classic converter with Biginteger.  
 
-https://github.com/michelenatale/Converts-and-Encodings/tree/main/Converts/BaseConverter/TestBaseConverter
