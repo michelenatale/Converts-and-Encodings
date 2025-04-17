@@ -10,6 +10,10 @@ The ReedSolomonCode offers 3 options.
 - The Reed Solomon decoding
 - The creation of a PackageData for easier handling when saving or sending locally.
 
+ReedSolomonCode is designed to be very easy to use for encoding. The message does not have to be adapted to the size of the data buffer first, but can be entered directly. The same applies to decoding.
+
+PackageData is also very easy to use and stores all the information for subsequent resolution in the result.  
+
 There is a [test file](https://github.com/michelenatale/Converts-and-Encodings/blob/main/Encodings/ReedSolomonCode/TestReedSolomonCode/Program.cs) available which shows how to use ReedSolomonCode.
 
 Here is a bit of code:
