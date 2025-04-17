@@ -16,7 +16,7 @@ PackageData is also very easy to use and stores all the information for subseque
 
 There is a [test file](https://github.com/michelenatale/Converts-and-Encodings/blob/main/Encodings/ReedSolomonCode/TestReedSolomonCode/Program.cs) available which shows how to use ReedSolomonCode.
 
-Here is a bit of code:
+Here is some code for encoding and decoding:
 ```
 var msg = "Hallo World - Reed Solomon Code";
 
