@@ -6,7 +6,7 @@ The possible [numeral system](https://en.wikipedia.org/wiki/Numeral_system) here
 
 There are two different methods here. The first is a converter that performs the calculation from left to right and is very fast. The second converter is the typical classic converter with Biginteger.  
 
-## Applying the ReedSolomonCode:
+## Applying the BaseConverter:
 There is a [test file](https://github.com/michelenatale/Converts-and-Encodings/blob/main/Converts/BaseConverter/TestBaseConverter/Program.cs) that shows how to use BaseConverter.
 
 Here is some code for encoding and decoding:
