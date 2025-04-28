@@ -204,7 +204,7 @@ public class Program
     RSDecoding.FromPackageData(dest, newsrc, out _);
     if (!EqualFiles(src, newsrc)) throw new Exception();
 
-    //Console.WriteLine($"{nameof(TestRSPackageDataStream)}: FINISH");
+    Console.WriteLine($"{nameof(TestRSPackageDataStream)}: FINISH");
 
   }
 
