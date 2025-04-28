@@ -1,7 +1,7 @@
 ﻿
 
-using System.Numerics;
 using System.IO.Compression;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 
 namespace michele.natale.ChannelCodings;
@@ -313,45 +313,59 @@ public class RSDecoding
   /// </summary>
   /// <param name="src"></param>
   /// <param name="dest"></param>
-  public static void FromPackageData(string src, string dest)
+  public static void FromPackageData(string src, string dest, out RsInfo rsinfo)
   {
     using var mss = new MemoryStream();
     using var fsin = new FileStream(src, FileMode.Open, FileAccess.Read);
     using var fsout = new FileStream(dest, FileMode.Create, FileAccess.Write);
 
-    var flength = fsin.Length;
     var buffer = new byte[1];
     fsin.ReadExactly(buffer);
 
     var c = buffer.First();
-    CheckSetCompress(fsin, mss, c);
+    CheckSetDecompress(fsin, mss, c);
 
+    var pcode = 7;
     mss.Position = 0;
-    buffer = new byte[13];
+    var flength = mss.Length;
+    buffer = new byte[pcode];
     mss.ReadExactly(buffer);
-    AssertFromPackageDataStream(buffer, (int)flength - 13);
+    AssertFromPackageDataStream(buffer, (int)flength - pcode);
 
-    var idp = (int)BitConverter.ToUInt16(buffer.AsSpan(7, 2).ToArray());
-    var datasize = (int)BitConverter.ToUInt32(buffer.AsSpan(1, 4).ToArray());
-    var eccsize = (int)BitConverter.ToUInt16(buffer.AsSpan(11, 2).ToArray());
-    var fieldsize = (int)BitConverter.ToUInt16(buffer.AsSpan(5, 2).ToArray());
-    var databuffersize = (int)BitConverter.ToUInt16(buffer.AsSpan(9, 2).ToArray());
+    var idp = (int)BitConverter.ToUInt16(buffer.AsSpan(3, 2).ToArray());
+    var eccsize = (int)BitConverter.ToUInt16(buffer.AsSpan(5, 2).ToArray());
+    var fieldsize = (int)BitConverter.ToUInt16(buffer.AsSpan(1, 2).ToArray());
+    var databuffersize = fieldsize - eccsize - 1;
+
+    rsinfo = new RsInfo()
+    {
+      Idp = idp,
+      EccSize = eccsize,
+      FieldSize = fieldsize,
+      ErrSizePerFs = eccsize >> 1,
+      DataBufferSize = fieldsize - eccsize - 1,
+    };
+
+    buffer = new byte[4];
+    mss.Position = mss.Length - eccsize - 4;
+    mss.ReadExactly(buffer);
+    var length = BitConverter.ToInt32(buffer);
 
     var readsize = 0;
     buffer = new byte[fieldsize - 1];
     var rsdec = new RSDecoding(fieldsize, idp, eccsize);
 
-    mss.Position = 13;
-    var length = datasize;
+    var cnt = 0;
+    mss.Position = pcode;
     while ((readsize = mss.Read(buffer)) > 0)
     {
+      cnt++;
       var dec = rsdec.Decoding(buffer, out _);
-      var l = length < dec.Length ? length : dec.Length;
+      var l = dec.Length < databuffersize ? dec.Length : databuffersize;
       fsout.Write(dec.Take(l).ToArray());
-      length -= dec.Length;
     }
+    fsout.SetLength(length);
   }
-
   #endregion PackageData 
 
 
@@ -562,7 +576,7 @@ public class RSDecoding
     return msout.ToArray();
   }
 
-  private static void CheckSetCompress(
+  private static void CheckSetDecompress(
     Stream fsin, Stream mss, byte choice)
   {
     var begin = choice == 1 ? 0 : 1;
@@ -707,23 +721,23 @@ public class RSDecoding
   private static void AssertFromPackageDataStream(
     ReadOnlySpan<byte> input, int filelength)
   {
-    if (input.Length != 13)
+    if (input.Length != 7)
       throw new ArgumentOutOfRangeException(nameof(input));
 
     if (input[0] != 1 && input[0] != 2)
       throw new ArgumentOutOfRangeException(nameof(input));
 
-    var idp = BitConverter.ToUInt16(input.Slice(7, 2));
-    var eccsize = BitConverter.ToUInt16(input.Slice(11, 2));
-    var fieldsize = BitConverter.ToUInt16(input.Slice(5, 2));
-    var datasize = (int)BitConverter.ToUInt32(input.Slice(1, 4));
-    var databuffersize = BitConverter.ToUInt16(input.Slice(9, 2));
+    var idp = BitConverter.ToUInt16(input.Slice(3, 2));
+    var eccsize = BitConverter.ToUInt16(input.Slice(4, 2));
+    var fieldsize = BitConverter.ToUInt16(input.Slice(1, 2));
+    //var datasize = (int)BitConverter.ToUInt32(input.Slice(1, 4));
+    var databuffersize = fieldsize - eccsize - 1;
 
     AssertRSDecoding(fieldsize);
 
-    //if (filelength % (fieldsize - 1) != 0)
-    //  throw new ArgumentOutOfRangeException(nameof(input),
-    //    $"{nameof(datasize)} % ({nameof(fieldsize)} - 1) != 0 has failed!");
+    if (filelength % (fieldsize - 1) != 0)
+      throw new ArgumentOutOfRangeException(nameof(input),
+        $"{nameof(filelength)} % ({nameof(fieldsize)} - 1) != 0 has failed!");
 
     if (databuffersize + eccsize != fieldsize - 1)
       throw new ArgumentException(
@@ -734,6 +748,5 @@ public class RSDecoding
         nameof(input), $"{nameof(idp)} has failde !");
 
   }
-
   #endregion Asserts
 }

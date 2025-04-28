@@ -1,11 +1,11 @@
 ﻿
-using System.Numerics;
 using System.IO.Compression;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 
 namespace michele.natale.ChannelCodings;
 
-using Numerics; 
+using Numerics;
 
 /// <summary>
 /// Provides tools and methods for encoding when dealing with Reed Solomon Code.
@@ -325,6 +325,7 @@ public class RSEncoding
 
   #region PackageData
 
+  #region PackageData Message
   /// <summary>
   /// Calculates the PackageData, for easy handling of saving and sending.
   /// <para>Powered by <see href="https://github.com/michelenatale">© Michele Natale 2025</see></para>  
@@ -382,29 +383,34 @@ public class RSEncoding
   /// Calculates the PackageData, for easy handling of saving and sending.
   /// <para>Powered by <see href="https://github.com/michelenatale">© Michele Natale 2025</see></para>  
   /// </summary>
-  /// <param name="message">Desired Message</param>
+  /// <param name="encode">Desired Message</param>
   /// <param name="rsinfo">Desired RSINFO</param>
   /// <param name="with_compress">Yes, if the data is to be compressed, otherwise false.</param>
   /// <returns></returns>
   public static byte[] ToPackageData(
-    ReadOnlySpan<byte> message, RsInfo rsinfo, bool with_compress)
+    ReadOnlySpan<byte> encode, RsInfo rsinfo, bool with_compress)
   {
-    AssertPackageData(message, rsinfo.EccSize);
+    AssertPackageData(encode, rsinfo);
     var ip = BitConverter.GetBytes((ushort)rsinfo.Idp).ToArray();
     var ec = BitConverter.GetBytes((ushort)rsinfo.EccSize).ToArray();
     var fs = BitConverter.GetBytes((ushort)rsinfo.FieldSize).ToArray();
 
-    var result = new byte[6 + message.Length];
+    var result = new byte[6 + encode.Length];
     Array.Copy(fs, result, 2);
     Array.Copy(ip, 0, result, 2, 2);
     Array.Copy(ec, 0, result, 4, 2);
-    message.CopyTo(result.AsSpan(6));
+    encode.CopyTo(result.AsSpan(6));
 
     if (with_compress)
       return Concat((byte)2, Compress(result));
 
     return Concat((byte)1, result);
   }
+  #endregion PackageData Message
+
+
+
+  #region PackageData Stream
 
   /// <summary>
   /// Calculates the PackageData Stream, for easy handling of saving and sending.
@@ -415,45 +421,110 @@ public class RSEncoding
   /// <param name="eccsize">Desired size of ecc - Error Correcting Code.</param>  
   /// <param name="with_compress">Yes, if the data is to be compressed, otherwise false.</param>
   public static void ToPackageData(
-      string src, string dest, int eccsize, bool with_compress = false)
+      string src, string dest,
+      int eccsize, bool with_compress = false)
   {
     AssertPackageData(src, dest, eccsize, true);
 
-    using var mss = new MemoryStream();
-    using var fsin = new FileStream(src, FileMode.Open, FileAccess.Read);
-    using var fsout = new FileStream(dest, FileMode.Create, FileAccess.Write);
+    using var fsin = new FileStream(
+      src, FileMode.Open, FileAccess.Read);
 
     var blength = BitConverter.GetBytes((int)fsin.Length);
     var (fieldsize, databuffersize, errsize, cnt) =
       ParamOptimizerEcc([255], blength, eccsize);
 
-    var pcode = 12;
+    var rsinfo = new RsInfo()
+    {
+      EccSize = eccsize,
+      FieldSize = fieldsize,
+      ErrSizePerFs = errsize,
+      DataBufferSize = databuffersize,
+      Idp = GF2RS.ToIDPs[ToExponent(fieldsize)].First(),
+    };
+
+    ToPackageData(src, dest, rsinfo, cnt, false, with_compress);
+  }
+
+  public static void ToPackageData(
+    string src, string dest, GF2RS field, int eccsize,
+    bool check_idp = false, bool with_compress = false)
+  {
+    AssertPackageData(src, dest, eccsize, true);
+
+    using var fsin = new FileStream(
+      src, FileMode.Open, FileAccess.Read);
+
+    AssertFieldSize(fsin, field.Order);
+
+    var blength = BitConverter.GetBytes((int)fsin.Length);
+    var (fieldsize, databuffersize, errsize, cnt) =
+      ParamOptimizerEcc([(byte)(field.Order - 1)], blength, eccsize);
+
+    var rsinfo = new RsInfo()
+    {
+      Idp = field.IDP,
+      EccSize = eccsize,
+      FieldSize = fieldsize,
+      ErrSizePerFs = errsize,
+      DataBufferSize = databuffersize,
+    };
+
+    ToPackageData(src, dest, rsinfo, cnt, check_idp, with_compress);
+  }
+
+  public static void ToPackageData(
+    string src, string dest, int fieldsize, int idp, int eccsize,
+    bool check_idp = false, bool with_compress = false)
+  {
+    var field = new GF2RS((ushort)fieldsize, (ushort)idp);
+    ToPackageData(src, dest, field, eccsize, check_idp, with_compress);
+  }
+
+  private static void ToPackageData(
+      string src, string dest, RsInfo rsinfo, int cnt,
+      bool check_idp = false, bool with_compress = false)
+  {
+    AssertPackageData(src, dest, true);
+
+    using var mss = new MemoryStream();
+    using var fsin = new FileStream(src, FileMode.Open, FileAccess.Read);
+    using var fsout = new FileStream(dest, FileMode.Create, FileAccess.Write);
+
+    var idp = rsinfo.Idp;
+    var blength = fsin.Length;
+    var eccsize = rsinfo.EccSize;
+    var fieldsize = rsinfo.FieldSize;
+    var errsize = rsinfo.ErrSizePerFs;
+    var databuffersize = rsinfo.DataBufferSize;
+    AssertParameters(fieldsize, idp, databuffersize, eccsize, errsize);
+
+    var pcode = 6;
     var readsize = 0;
-    var filesize = fsin.Length;
     mss.Write(new byte[pcode]);
 
     var mlength = fieldsize - 1;
     var buffer = new byte[databuffersize];
-    var rsenc = new RSEncoding(fieldsize);
-    AssertParameters(fieldsize, rsenc.GField.IDP,
-      databuffersize, eccsize, errsize);
+    var rsenc = new RSEncoding(fieldsize, (ushort)idp, check_idp);
 
+    var count = 0;
     while ((readsize = fsin.Read(buffer)) > 0)
     {
       var enc = rsenc.Encoding(buffer);
       mss.Write(enc);
       Array.Clear(buffer);
+      count++;
     }
 
-    var sz = BitConverter.GetBytes((int)filesize);
+    if (count < cnt) mss.Write(new byte[fieldsize - 1]);
+
+    var sz = BitConverter.GetBytes((int)blength);
     var ec = BitConverter.GetBytes((ushort)eccsize);
     var id = BitConverter.GetBytes(rsenc.GField.IDP);
     var fs = BitConverter.GetBytes((ushort)fieldsize);
-    var ms = BitConverter.GetBytes((ushort)databuffersize);
 
-    fsout.Position = 0; mss.Position = 0;
-    mss.Write(sz); mss.Write(fs); mss.Write(id);
-    mss.Write(ms); mss.Write(ec); mss.Position = 0;
+    mss.Position = mss.Position - eccsize - 4;
+    mss.Write(sz); mss.Position = 0; fsout.Position = 0;
+    mss.Write(fs); mss.Write(id); mss.Write(ec); mss.Position = 0;
 
     if (with_compress)
     {
@@ -467,6 +538,7 @@ public class RSEncoding
     fsout.WriteByte(1);
     mss.CopyTo(fsout);
   }
+  #endregion PackageData Stream
   #endregion PackageData
 
 
@@ -521,7 +593,7 @@ public class RSEncoding
   /// <returns></returns>
   public static int NextFieldSize(int number)
   {
-    if (number >= 1 << GF2RS.MAX_EXP) return 1 << GF2RS.MAX_EXP;
+    if (number >= (1 << GF2RS.MAX_EXP) - 1) return 1 << GF2RS.MAX_EXP;
     return NextPowerOfTwo(number);
   }
 
@@ -531,7 +603,8 @@ public class RSEncoding
     if (eccsize < 4) eccsize = 4;
 
     var fsmax = MAX_FIELD_SIZE;
-    var datalength = message.Length + 4; //Length as byte
+    var mlength = BitConverter.ToInt32(blength);
+    var datalength = Math.Max(mlength + 4, message.Length + 4); //Length as byte
     var fsmin = eccsize << 1 >= MAX_FIELD_SIZE ? MAX_FIELD_SIZE : NextFieldSize(eccsize << 1);
     if (fsmin < MIN_FIELD_SIZE) fsmin = MIN_FIELD_SIZE;
 
@@ -711,7 +784,7 @@ public class RSEncoding
   }
 
   private static void AssertPackageData(
-    ReadOnlySpan<byte> data, int errsize)
+    ReadOnlySpan<byte> data, RsInfo rsinfo)
   {
     if (data.Length > MAX_DATA_SIZE)
       throw new ArgumentOutOfRangeException(nameof(data),
@@ -721,13 +794,23 @@ public class RSEncoding
       throw new ArgumentOutOfRangeException(nameof(data),
         $"{nameof(data)}.Length == 0 has failed!");
 
-    if (errsize < 0)
-      throw new ArgumentOutOfRangeException(nameof(errsize),
-        $"{nameof(errsize)} < 0 has failed!");
+    ArgumentNullException.ThrowIfNull(rsinfo);
+
+    AssertParameters(rsinfo.FieldSize, rsinfo.Idp,
+      rsinfo.DataBufferSize, rsinfo.EccSize, rsinfo.ErrSizePerFs);
   }
 
   private static void AssertPackageData(
-    string src, string dest, int eccsize, bool delete_dest = true)
+      string src, string dest, int eccsize, bool delete_dest = true)
+  {
+    AssertPackageData(src, dest, delete_dest);
+    if (eccsize < 4)
+      throw new ArgumentOutOfRangeException(nameof(eccsize),
+        $"{nameof(eccsize)} < 4 has failed!");
+  }
+
+  private static void AssertPackageData(
+    string src, string dest, bool delete_dest)
   {
     //For Streams
 
@@ -750,9 +833,6 @@ public class RSEncoding
       throw new ArgumentOutOfRangeException(nameof(src),
         $"{nameof(file_length)} == 0 has failed!");
 
-    if (eccsize < 0)
-      throw new ArgumentOutOfRangeException(nameof(eccsize),
-        $"{nameof(eccsize)} < 0 has failed!");
   }
 
   private static void AssertParameters(
@@ -783,6 +863,16 @@ public class RSEncoding
       if (item >= fieldsize)
         throw new ArgumentOutOfRangeException(nameof(fieldsize),
            $"{nameof(item)} in {nameof(message)} >= {nameof(fieldsize)} has failed!");
+  }
+
+  private static void AssertFieldSize(Stream stream, int fieldsize)
+  {
+    AssertFieldSize(fieldsize);
+    var length = stream.Length;
+    while (stream.Position < length)
+      if (stream.ReadByte() >= fieldsize)
+        throw new ArgumentOutOfRangeException(nameof(fieldsize),
+           $"stream_byte in {nameof(stream)} >= {nameof(fieldsize)} has failed!");
   }
 
   private static void AssertFieldSize(int fieldsize, int idp)
