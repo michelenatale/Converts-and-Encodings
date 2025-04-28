@@ -13,9 +13,7 @@ public class Program
 {
   public static void Main()
   { 
-
-    for (var i = 0; i < 10000; i++)
-      TestRSC();
+    TestRSC();
 
     Console.WriteLine();
     Console.WriteLine("FINISH");
