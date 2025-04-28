@@ -23,10 +23,10 @@ public class Program
   private static void TestRSC()
   {
 
-    //TestRSEnDecodeErrors();
-    //TestRSEnDecodeErrorsULong();
+    TestRSEnDecodeErrors();
+    TestRSEnDecodeErrorsULong();
 
-    //TestRSPackageData();
+    TestRSPackageData();
     TestRSPackageDataStream();
 
   }
