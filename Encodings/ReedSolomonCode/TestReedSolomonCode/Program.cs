@@ -1,18 +1,22 @@
 ﻿
 using System.Text;
 using System.Numerics;
+using System.Security.Cryptography;
 using System.Runtime.CompilerServices;
 
 namespace ReedSolomonCodeTest;
- 
-using System.Security.Cryptography;
+
+using TestReedSolomonCode;
 using michele.natale.ChannelCodings;
 
 public class Program
 {
   public static void Main()
-  { 
-    TestRSC();
+  {
+    UnitTest.Start();
+
+    for (var i = 0; i < 10000; i++)
+      TestRSC();
 
     Console.WriteLine();
     Console.WriteLine("FINISH");
@@ -22,10 +26,10 @@ public class Program
   private static void TestRSC()
   {
 
-    TestRSEnDecodeErrors();
-    TestRSEnDecodeErrorsULong();
+    //TestRSEnDecodeErrors();
+    //TestRSEnDecodeErrorsULong();
 
-    TestRSPackageData();
+    //TestRSPackageData();
     TestRSPackageDataStream();
 
   }
@@ -56,14 +60,14 @@ public class Program
     var dec = RSDecoding.DecodingRS<byte>(enc, rsinfo.FieldSize, rsinfo.EccSize);
     var newmessage = Encoding.UTF8.GetString([.. dec]);
     if (!msg.SequenceEqual(newmessage)) throw new Exception();
-    var enccopy = enc.ToArray(); 
+    var enccopy = enc.ToArray();
 
 
     //enc with errors
     //***************
 
-    //Set various errors. Even if "SetRngErrors"
-    //has no built-in errors, the repair will be done correctly. 
+    //Set various errors. Even if "SetRngErrors" has no 
+    //built-in errors, the repair will be done correctly. 
     var rss = rsinfo.FieldSize - 1;
     var cnt = enccopy.Length / rss;
     for (var i = 0; i < cnt; i++)
@@ -149,7 +153,6 @@ public class Program
     var eccsize = rand.Next(4, 128 >> 1);
     var withcompress = int.IsEvenInteger(rand.Next());
 
-
     var enc = RSEncoding.ToPackageData<byte>(message, 4, withcompress);
     var dec = RSDecoding.FromPackageData<byte>(enc, out var rsinfo);
 
@@ -201,10 +204,10 @@ public class Program
     //of ecc. PackageMessage calculates and optimizes the
     //rest itself.
     RSEncoding.ToPackageData(src, dest, eccsize, with_compress);
-    RSDecoding.FromPackageData(dest, newsrc);
+    RSDecoding.FromPackageData(dest, newsrc, out _);
     if (!EqualFiles(src, newsrc)) throw new Exception();
 
-    Console.WriteLine($"{nameof(TestRSPackageDataStream)}: FINISH");
+    //Console.WriteLine($"{nameof(TestRSPackageDataStream)}: FINISH");
 
   }
 
