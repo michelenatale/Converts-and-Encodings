@@ -6,12 +6,16 @@ using System.Runtime.CompilerServices;
 
 namespace ReedSolomonCodeTest;
 
+using TestReedSolomonCode;
 using michele.natale.ChannelCodings;
 
 public class Program
 {
   public static void Main()
-  { 
+  {
+    UnitTest.Start();
+
+    //for (var i = 0; i < 10000; i++)
     TestRSC();
 
     Console.WriteLine();
@@ -26,6 +30,7 @@ public class Program
     TestRSEnDecodeErrorsULong();
 
     TestRSPackageData();
+    TestRSPackageDataFile();
     TestRSPackageDataStream();
 
   }
@@ -172,6 +177,50 @@ public class Program
     if (!msg.SequenceEqual(newmessageul)) throw new Exception();
 
     Console.WriteLine($"{nameof(TestRSPackageData)}: FINISH");
+  }
+
+  private static void TestRSPackageDataFile()
+  {
+    // fsize      ecc        err
+    // 16         4-8        0-4
+    // 32         4-16       0-8
+    // 64         4-32       0-16
+    // 128        4-64       0-32
+    // .......
+
+    var src = "data2.txt";
+    var dest = "rsdata.txt";
+    var newsrc = "newdata.txt";
+
+    var rand = Random.Shared;
+
+    //var msg = "Hallo World";
+    var msg = "Hallo World - Reed Solomon Code ";
+    var message = Encoding.UTF8.GetBytes(MultString(msg, 10));
+
+    var eccsize = rand.Next(4, 128 >> 1);
+    var withcompress = int.IsEvenInteger(rand.Next());
+
+    var package = RSEncoding.ToPackageData<byte>(message, 4, withcompress);
+    File.WriteAllBytes(dest, package);
+
+    RSDecoding.FromPackageData(dest, newsrc, out var rsinfo);
+
+    var dec = File.ReadAllBytes(newsrc);
+    var newmessage = Encoding.UTF8.GetString([.. dec]);
+    if (!dec.SequenceEqual(message)) throw new Exception();
+
+    //******** ******** ******** ******** ******** ******** 
+    //******** ******** ******** ******** ******** ******** 
+
+    File.WriteAllBytes(src, message);
+    RSEncoding.ToPackageData(src, dest, 4, withcompress);
+
+    var packagefile = File.ReadAllBytes(dest);
+    var decfile = RSDecoding.FromPackageData<byte>(packagefile, out rsinfo);
+    if (!decfile.SequenceEqual(message)) throw new Exception();
+
+    Console.WriteLine($"{nameof(TestRSPackageDataFile)}: FINISH");
   }
 
   private static void TestRSPackageDataStream()
