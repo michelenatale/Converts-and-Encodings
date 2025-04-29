@@ -407,9 +407,6 @@ public class RSEncoding
     return Concat((byte)1, result);
   }
   #endregion PackageData Message
-
-
-
   #region PackageData Stream
 
   /// <summary>
@@ -423,9 +420,7 @@ public class RSEncoding
   public static void ToPackageData(
       string src, string dest,
       int eccsize, bool with_compress = false)
-  {
-    AssertPackageData(src, dest, eccsize, true);
-
+  { 
     using var fsin = new FileStream(
       src, FileMode.Open, FileAccess.Read);
 
@@ -445,16 +440,22 @@ public class RSEncoding
     ToPackageData(src, dest, rsinfo, cnt, false, with_compress);
   }
 
+  /// <summary>
+  /// Calculates the PackageData Stream, for easy handling of saving and sending.
+  /// <para>Powered by <see href="https://github.com/michelenatale">© Michele Natale 2025</see></para>  
+  /// </summary>
+  /// <param name="src">Desired FileSource</param>
+  /// <param name="dest">Desired FileDestination</param>
+  /// <param name="field">Desired GF2RSX - Galois Field</param> 
+  /// <param name="eccsize">Desired size of ecc - Error Correcting Code.</param>  
+  /// <param name="check_idp">Yes, if the IDP - Irreducible Polynomial is to be checked, otherwise false.</param>
+  /// <param name="with_compress">Yes, if the data is to be compressed, otherwise false.</param>
   public static void ToPackageData(
     string src, string dest, GF2RS field, int eccsize,
     bool check_idp = false, bool with_compress = false)
   {
-    AssertPackageData(src, dest, eccsize, true);
-
     using var fsin = new FileStream(
       src, FileMode.Open, FileAccess.Read);
-
-    AssertFieldSize(fsin, field.Order);
 
     var blength = BitConverter.GetBytes((int)fsin.Length);
     var (fieldsize, databuffersize, errsize, cnt) =
@@ -472,6 +473,17 @@ public class RSEncoding
     ToPackageData(src, dest, rsinfo, cnt, check_idp, with_compress);
   }
 
+  /// <summary>
+  /// Calculates the PackageData Stream, for easy handling of saving and sending.
+  /// <para>Powered by <see href="https://github.com/michelenatale">© Michele Natale 2025</see></para>  
+  /// </summary>
+  /// <param name="src">Desired FileSource</param>
+  /// <param name="dest">Desired FileDestination</param> 
+  /// <param name="fieldsize">Desired FieldSize</param>
+  /// <param name="idp">Desiered IDP - Irreducible Polynomial</param>
+  /// <param name="eccsize">Desired size of ecc - Error Correcting Code.</param>  
+  /// <param name="check_idp">Yes, if the IDP - Irreducible Polynomial is to be checked, otherwise false.</param>
+  /// <param name="with_compress">Yes, if the data is to be compressed, otherwise false.</param>
   public static void ToPackageData(
     string src, string dest, int fieldsize, int idp, int eccsize,
     bool check_idp = false, bool with_compress = false)
@@ -484,11 +496,13 @@ public class RSEncoding
       string src, string dest, RsInfo rsinfo, int cnt,
       bool check_idp = false, bool with_compress = false)
   {
-    AssertPackageData(src, dest, true);
+    AssertPackageData(src, dest, rsinfo, true);
 
     using var mss = new MemoryStream();
     using var fsin = new FileStream(src, FileMode.Open, FileAccess.Read);
     using var fsout = new FileStream(dest, FileMode.Create, FileAccess.Write);
+
+    AssertFieldSize(fsin, rsinfo.FieldSize);
 
     var idp = rsinfo.Idp;
     var blength = fsin.Length;
@@ -496,7 +510,6 @@ public class RSEncoding
     var fieldsize = rsinfo.FieldSize;
     var errsize = rsinfo.ErrSizePerFs;
     var databuffersize = rsinfo.DataBufferSize;
-    AssertParameters(fieldsize, idp, databuffersize, eccsize, errsize);
 
     var pcode = 6;
     var readsize = 0;
@@ -507,6 +520,7 @@ public class RSEncoding
     var rsenc = new RSEncoding(fieldsize, (ushort)idp, check_idp);
 
     var count = 0;
+    fsin.Position = 0;
     while ((readsize = fsin.Read(buffer)) > 0)
     {
       var enc = rsenc.Encoding(buffer);
@@ -539,6 +553,7 @@ public class RSEncoding
     mss.CopyTo(fsout);
   }
   #endregion PackageData Stream
+
   #endregion PackageData
 
 
@@ -801,14 +816,15 @@ public class RSEncoding
   }
 
   private static void AssertPackageData(
-      string src, string dest, int eccsize, bool delete_dest = true)
+         string src, string dest, RsInfo rsinfo, bool delete_dest = true)
   {
     AssertPackageData(src, dest, delete_dest);
-    if (eccsize < 4)
-      throw new ArgumentOutOfRangeException(nameof(eccsize),
-        $"{nameof(eccsize)} < 4 has failed!");
-  }
+    ArgumentNullException.ThrowIfNull(rsinfo);
 
+    AssertParameters(rsinfo.FieldSize, rsinfo.Idp,
+      rsinfo.DataBufferSize, rsinfo.EccSize, rsinfo.ErrSizePerFs);
+  }
+ 
   private static void AssertPackageData(
     string src, string dest, bool delete_dest)
   {
