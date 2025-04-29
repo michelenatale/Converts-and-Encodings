@@ -6,7 +6,6 @@ using System.Runtime.CompilerServices;
 
 namespace ReedSolomonCodeTest;
 
-using TestReedSolomonCode;
 using michele.natale.ChannelCodings;
 
 public class Program
