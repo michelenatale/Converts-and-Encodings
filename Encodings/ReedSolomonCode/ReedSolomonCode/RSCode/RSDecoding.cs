@@ -354,12 +354,10 @@ public class RSDecoding
     var readsize = 0;
     buffer = new byte[fieldsize - 1];
     var rsdec = new RSDecoding(fieldsize, idp, eccsize);
-
-    var cnt = 0;
+ 
     mss.Position = pcode;
     while ((readsize = mss.Read(buffer)) > 0)
-    {
-      cnt++;
+    { 
       var dec = rsdec.Decoding(buffer, out _);
       var l = dec.Length < databuffersize ? dec.Length : databuffersize;
       fsout.Write(dec.Take(l).ToArray());
@@ -369,7 +367,7 @@ public class RSDecoding
   #endregion PackageData 
 
 
-  #region Methoden
+  #region Methods
   /// <summary>
   /// Calculates the next Power Of Two.
   /// <para>Powered by <see href="https://github.com/michelenatale">© Michele Natale 2025</see></para>  
@@ -540,7 +538,7 @@ public class RSDecoding
       DataBufferSize = databuffersize,
     };
   }
-  #endregion Methoden
+  #endregion Methods
 
   #region Utils
   private static T[] FromBytes<T>(byte[] bytes)

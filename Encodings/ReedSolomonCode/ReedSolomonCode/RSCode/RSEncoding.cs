@@ -420,7 +420,7 @@ public class RSEncoding
   public static void ToPackageData(
       string src, string dest,
       int eccsize, bool with_compress = false)
-  { 
+  {
     using var fsin = new FileStream(
       src, FileMode.Open, FileAccess.Read);
 
@@ -510,6 +510,7 @@ public class RSEncoding
     var fieldsize = rsinfo.FieldSize;
     var errsize = rsinfo.ErrSizePerFs;
     var databuffersize = rsinfo.DataBufferSize;
+    var sz = BitConverter.GetBytes((int)blength);
 
     var pcode = 6;
     var readsize = 0;
@@ -523,21 +524,27 @@ public class RSEncoding
     fsin.Position = 0;
     while ((readsize = fsin.Read(buffer)) > 0)
     {
+      if (count == cnt - 1)
+        Array.Copy(sz, 0, buffer, buffer.Length - 4, 4);
       var enc = rsenc.Encoding(buffer);
       mss.Write(enc);
       Array.Clear(buffer);
       count++;
     }
 
-    if (count < cnt) mss.Write(new byte[fieldsize - 1]);
+    if (count < cnt)
+    {
+      Array.Clear(buffer);
+      Array.Copy(sz, 0, buffer, buffer.Length - 4, 4);
+      var enc = rsenc.Encoding(buffer);
+      mss.Write(enc);
+    }
 
-    var sz = BitConverter.GetBytes((int)blength);
     var ec = BitConverter.GetBytes((ushort)eccsize);
     var id = BitConverter.GetBytes(rsenc.GField.IDP);
     var fs = BitConverter.GetBytes((ushort)fieldsize);
 
-    mss.Position = mss.Position - eccsize - 4;
-    mss.Write(sz); mss.Position = 0; fsout.Position = 0;
+    mss.Position = 0; fsout.Position = 0;
     mss.Write(fs); mss.Write(id); mss.Write(ec); mss.Position = 0;
 
     if (with_compress)
@@ -557,7 +564,7 @@ public class RSEncoding
   #endregion PackageData
 
 
-  #region Methodes
+  #region Methods
   private byte[] ToMultiplier(int databuffersize)
   {
     var count = this.FieldSize - databuffersize - 1;
@@ -671,7 +678,7 @@ public class RSEncoding
   /// <returns></returns>
   public static int ToExponent(int fieldsize) =>
     GF2RS.ToExponent((ushort)fieldsize);
-  #endregion Methodes
+  #endregion Methods
 
   #region Utils
   private static T[] Concat<T>(T left, T[] right)
@@ -824,7 +831,7 @@ public class RSEncoding
     AssertParameters(rsinfo.FieldSize, rsinfo.Idp,
       rsinfo.DataBufferSize, rsinfo.EccSize, rsinfo.ErrSizePerFs);
   }
- 
+
   private static void AssertPackageData(
     string src, string dest, bool delete_dest)
   {
