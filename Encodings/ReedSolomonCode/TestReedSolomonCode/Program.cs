@@ -5,16 +5,13 @@ using System.Security.Cryptography;
 using System.Runtime.CompilerServices;
 
 namespace ReedSolomonCodeTest;
-
-using TestReedSolomonCode;
+ 
 using michele.natale.ChannelCodings;
 
 public class Program
 {
   public static void Main()
-  {
-    //UnitTest.Start();
- 
+  {  
     TestRSC();
 
     Console.WriteLine();
