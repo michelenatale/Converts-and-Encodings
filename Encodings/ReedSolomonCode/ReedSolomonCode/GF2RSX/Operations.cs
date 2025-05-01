@@ -4,16 +4,6 @@ namespace michele.natale.Numerics;
 
 partial class GF2RS
 {
-
-  ///// <summary>
-  ///// Returns the multiplicative inverse of the current value. 
-  ///// <para>Updated by <see href="https://github.com/michelenatale">© Michele Natale 2025</see></para>  
-  ///// </summary>
-  //public GF2RS Inv_Mul =>
-  //  this.Value != 0 ? new GF2RS(this.Order, this.IDP, this.Exp[this.Order - 1 - this.Log[this.Value]])
-  //  : throw new ArgumentOutOfRangeException(
-  //      nameof(this.InvMul), $"{nameof(this.InvMul)}(0) is undefined!");
-
   /// <summary>
   /// Returns the multiplicative inverse of the value. 
   /// <para>Updated by <see href="https://github.com/michelenatale">© Michele Natale 2025</see></para>  
