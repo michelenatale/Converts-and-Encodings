@@ -4,7 +4,7 @@ namespace michele.natale.Numerics;
 partial class GF2RS
 {
 
-  private readonly byte MValue;
+  private byte MValue;
 
   /// <summary>
   /// Smallest permitted exponent for the order calculation in a GF2.
@@ -26,7 +26,7 @@ partial class GF2RS
   public byte Value
   {
     get => this.MValue;
-    private init => this.MValue = ExtMod(value, this.Order);
+    internal set => this.MValue = ExtMod(value, this.Order);
   }
 
   /// <summary>

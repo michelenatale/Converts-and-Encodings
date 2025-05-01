@@ -1,4 +1,4 @@
-﻿ 
+﻿
 namespace michele.natale.Numerics;
 
 partial class GF2RS
@@ -8,7 +8,7 @@ partial class GF2RS
   /// <para>Updated by <see href="https://github.com/michelenatale">© Michele Natale 2025</see></para>  
   /// </summary>
   public GF2RS Copy =>
-    new(this.Order, this.IDP, this.Value); 
+    new(this.Order, this.IDP, this.Value);
 
   public byte PolyEval(ReadOnlySpan<byte> poly, byte x)
   {
