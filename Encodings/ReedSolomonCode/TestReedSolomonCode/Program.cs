@@ -6,12 +6,15 @@ using System.Runtime.CompilerServices;
 
 namespace ReedSolomonCodeTest;
 
+using TestReedSolomonCode;
 using michele.natale.ChannelCodings;
 
 public class Program
 {
   public static void Main()
   {
+    //UnitTest.Start();
+ 
     TestRSC();
 
     Console.WriteLine();
@@ -30,7 +33,6 @@ public class Program
     TestRSPackageDataStream();
 
   }
-
 
   private static void TestRSEnDecodeErrors()
   {
@@ -191,8 +193,11 @@ public class Program
     var rand = Random.Shared;
 
     //var msg = "Hallo World";
-    var msg = "Hallo World - Reed Solomon Code ";
-    var message = Encoding.UTF8.GetBytes(MultString(msg, 10));
+    var msg = "Hallo World - Reed Solomon Code "; 
+    var message = Encoding.UTF8.GetBytes(MultString(msg, rand.Next(1, 15)));
+
+    if (message.Length > RSEncoding.MAX_DATA_SIZE)
+      throw new ArgumentOutOfRangeException(nameof(message));
 
     var eccsize = rand.Next(4, 128 >> 1);
     var withcompress = int.IsEvenInteger(rand.Next());
@@ -294,6 +299,8 @@ public class Program
 
   private static string MultString(string str, int mul)
   {
+    if(mul == 0) return str;
+
     var result = new StringBuilder(mul * str.Length);
     for (var i = 0; i < mul; i++)
       result.Append(str);
