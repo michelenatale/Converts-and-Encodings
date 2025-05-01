@@ -250,7 +250,7 @@ public class RSEncoding
 
     AssertEncoding(data, this.FieldSize);
     var eccsize = this.FieldSize - data.Length - 1;
- 
+
     var length = data.Length;
     var ecc = new byte[eccsize];
     var multiplier = this.ToMultiplier(data.Length);
@@ -629,11 +629,13 @@ public class RSEncoding
     var fsmin = eccsize << 1 >= MAX_FIELD_SIZE ? MAX_FIELD_SIZE : NextFieldSize(eccsize << 1);
     if (fsmin < MIN_FIELD_SIZE) fsmin = MIN_FIELD_SIZE;
 
-    var maxnumber = (int)message.ToArray().Max();
-    fsmin = maxnumber <= fsmin ? fsmin : NextFieldSize(maxnumber);
+    var maxnumber = message.ToArray().Max();
+    if (maxnumber > fsmin) fsmin = NextFieldSize(maxnumber); 
+    if (maxnumber == fsmin) fsmin = NextFieldSize(maxnumber + 1);
 
     maxnumber = blength.ToArray().Max();
-    fsmin = maxnumber <= fsmin ? fsmin : NextFieldSize(maxnumber);
+    if (maxnumber > fsmin) fsmin = NextFieldSize(maxnumber);
+    if (maxnumber == fsmin) fsmin = NextFieldSize(maxnumber + 1);
 
     var ecc = eccsize;
     var opt = int.MaxValue;
