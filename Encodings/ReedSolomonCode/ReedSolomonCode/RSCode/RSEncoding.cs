@@ -303,13 +303,22 @@ public class RSEncoding
     }
     else
     {
-      for (var i = 0; i < cnt - 1; i++)
+      var i = 0;
+      for (i = 0; i < cnt - 1; i++)
       {
         var l = mdata.Length - i * databuffersize;
         var len = l < databuffersize ? l : databuffersize;
-        Array.Copy(rsenc.Encoding(
+        if (len == databuffersize)
+          Array.Copy(rsenc.Encoding(
           mdata.Slice(i * databuffersize, len)),
             0, result, i * rslength, rslength);
+        else
+        {
+          mdata.Slice(i * databuffersize, len).CopyTo(databuffer);
+          Array.Copy(rsenc.Encoding(databuffer),
+            0, result, i * rslength, rslength);
+          Array.Clear(databuffer);
+        }
       }
       var d = mdata.ToArray().Skip((cnt - 1) * databuffersize).ToArray();
       Array.Copy(d, databuffer, d.Length);
@@ -337,7 +346,7 @@ public class RSEncoding
   public static byte[] ToPackageData<T>(
     ReadOnlySpan<T> message, int eccsize,
     bool with_compress = false)
-      where T : INumber<T> =>
+      where T : INumber<T> => 
         ToPackageData(EncodingRS(message, eccsize,
           out var rsinfo), rsinfo, with_compress);
 
@@ -630,7 +639,7 @@ public class RSEncoding
     if (fsmin < MIN_FIELD_SIZE) fsmin = MIN_FIELD_SIZE;
 
     var maxnumber = message.ToArray().Max();
-    if (maxnumber > fsmin) fsmin = NextFieldSize(maxnumber); 
+    if (maxnumber > fsmin) fsmin = NextFieldSize(maxnumber);
     if (maxnumber == fsmin) fsmin = NextFieldSize(maxnumber + 1);
 
     maxnumber = blength.ToArray().Max();
