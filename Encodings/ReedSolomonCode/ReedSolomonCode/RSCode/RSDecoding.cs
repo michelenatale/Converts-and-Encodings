@@ -1,7 +1,7 @@
 ﻿
 
-using System.IO.Compression;
 using System.Numerics;
+using System.IO.Compression;
 using System.Runtime.CompilerServices;
 
 namespace michele.natale.ChannelCodings;
@@ -105,7 +105,7 @@ public class RSDecoding
     AssertRSDecoding(fieldsize);
     var idp = GF2RS.ToIDPs[GF2RS.ToExponent((ushort)fieldsize)].First();
     this.GField = new GF2RS((ushort)fieldsize, idp);
-    this.FieldSize = GField.Order;
+    this.FieldSize = this.GField.Order;
     this.EccSize = eccsize;
   }
 
@@ -126,7 +126,7 @@ public class RSDecoding
 
     this.GField = field;
     this.EccSize = eccsize;
-    this.FieldSize = GField.Order;
+    this.FieldSize = this.GField.Order;
   }
 
   /// <summary>
@@ -145,7 +145,7 @@ public class RSDecoding
     AssertFieldSize(fieldsize, idp);
     if (check_idp) CheckIdp(fieldsize, idp);
     this.GField = new GF2RS((ushort)fieldsize, (ushort)idp);
-    this.FieldSize = GField.Order;
+    this.FieldSize = this.GField.Order;
     this.EccSize = eccsize;
   }
   #endregion C-Tor
@@ -257,24 +257,23 @@ public class RSDecoding
   {
     if (encode.Length % (this.FieldSize - 1) != 0)
       throw new ArgumentOutOfRangeException(
-        nameof(encode), $"{nameof(encode)}.Length != {this.FieldSize} - 1!");
+        nameof(encode), $"{nameof(encode)}.Length % ({this.FieldSize} - 1) != 0 has failed!");
 
     var databuffersize = encode.Length - this.EccSize;
     ecc = encode[databuffersize..].ToArray();
 
     var result = encode[..databuffersize].ToArray();
-    var syndroms = ToSyndromPoly(result, ecc);
-    var lambda = ToLambda(syndroms, this.EccSize - 1, this.EccSize - 1, this.EccSize - 1);
+    var syndroms = this.ToSyndromPoly(result, ecc);
+    var lambda = this.ToLambda(syndroms, this.EccSize - 1, this.EccSize - 1, this.EccSize - 1);
 
-    var omega = ToOmega(lambda, syndroms, this.EccSize - 2);
+    var omega = this.ToOmega(lambda, syndroms, this.EccSize - 2);
     var lambdaprime = ToLambdaPrime(lambda, this.EccSize - 2);
 
-    var chiencache = new byte[this.FieldSize - 1];
+    var erroridx = new byte[this.FieldSize - 1]; 
+    for (var i = 0; i < erroridx.Length; i++)
+      erroridx[i] = this.GField.InvMul(this.GField.Exp[i]);
 
-    for (var i = 0; i < chiencache.Length; i++)
-      chiencache[i] = new GF2RS(this.GField.Exp[i], this.GField).Inv_Mul.Value;
-
-    var erroridx = ChienSearch(lambda, chiencache, this.FieldSize - 1);
+    this.ChienSearch(lambda, erroridx, this.FieldSize - 1);
     this.RepairErrors(result, ecc, erroridx, omega, lambdaprime);
 
     return result;
@@ -354,10 +353,10 @@ public class RSDecoding
     var readsize = 0;
     buffer = new byte[fieldsize - 1];
     var rsdec = new RSDecoding(fieldsize, idp, eccsize);
- 
+
     mss.Position = pcode;
     while ((readsize = mss.Read(buffer)) > 0)
-    { 
+    {
       var dec = rsdec.Decoding(buffer, out _);
       var l = dec.Length < databuffersize ? dec.Length : databuffersize;
       fsout.Write(dec.Take(l).ToArray());
@@ -410,29 +409,25 @@ public class RSDecoding
         var x = this.GField.Exp[i];
         var inversex = this.GField.InvMul(x);
 
-        var top = GField.PolyEval(omega, inversex);
-        top = GField.Multiply(top, x);
-        var bottom = GField.PolyEval(lp, inversex);
+        var top = this.GField.PolyEval(omega, inversex);
+        top = this.GField.Multiply(top, x);
+        var bottom = this.GField.PolyEval(lp, inversex);
 
         if (i < szecc)
-          ecc[i] ^= GField.Divide(top, bottom);
-        else databuffer[i - szecc] ^= GField.Divide(top, bottom);
+          ecc[i] ^= this.GField.Divide(top, bottom);
+        else databuffer[i - szecc] ^= this.GField.Divide(top, bottom);
       }
   }
 
-  private byte[] ChienSearch(
+  private void ChienSearch(
     ReadOnlySpan<byte> lambda,
-    ReadOnlySpan<byte> chiencache, int erridxsize)
+    Span<byte> erroridx, int erridxsize)
   {
-    var result = new byte[erridxsize];
-
     for (var i = 0; i < erridxsize; i++)
-      result[i] = this.GField.PolyEval(lambda, chiencache[i]);
-
-    return result;
+      erroridx[i] = this.GField.PolyEval(lambda, erroridx[i]); 
   }
 
-  private byte[] ToSyndromPoly(byte[] databuffer, byte[] ecc)
+  private byte[] ToSyndromPoly(ReadOnlySpan<byte> databuffer, ReadOnlySpan<byte> ecc)
   {
     var eccsize = ecc.Length;
     var result = new byte[eccsize];

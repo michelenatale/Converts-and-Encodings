@@ -1,6 +1,6 @@
 ﻿
-using System.IO.Compression;
 using System.Numerics;
+using System.IO.Compression;
 using System.Runtime.CompilerServices;
 
 namespace michele.natale.ChannelCodings;
@@ -104,7 +104,7 @@ public class RSEncoding
     AssertRSEncoding(fieldsize);
     var idp = GF2RS.ToIDPs[GF2RS.ToExponent((ushort)fieldsize)].First();
     this.GField = new GF2RS((ushort)fieldsize, idp);
-    this.FieldSize = GField.Order;
+    this.FieldSize = this.GField.Order;
   }
 
   /// <summary>
@@ -122,7 +122,7 @@ public class RSEncoding
       CheckIdp(field.Order, field.IDP);
 
     this.GField = field;
-    this.FieldSize = GField.Order;
+    this.FieldSize = this.GField.Order;
   }
 
   /// <summary>
@@ -140,7 +140,7 @@ public class RSEncoding
     AssertFieldSize(fieldsize, idp);
     if (check_idp) CheckIdp(fieldsize, idp);
     this.GField = new GF2RS((ushort)fieldsize, idp);
-    this.FieldSize = GField.Order;
+    this.FieldSize = this.GField.Order;
   }
 
   #endregion C-Tor
@@ -242,19 +242,18 @@ public class RSEncoding
   /// Calculates the Reed Solomon Code Encoding based on the desired parameters.
   /// <para>Powered by <see href="https://github.com/michelenatale">© Michele Natale 2025</see></para>  
   /// </summary>
-  /// <param name="databuffer">Desired DataBuffer</param>
+  /// <param name="data">Desired DataBuffer</param>
   /// <returns></returns>
-  public byte[] Encoding(ReadOnlySpan<byte> databuffer)
+  public byte[] Encoding(ReadOnlySpan<byte> data)
   {
-    //datapuffer muss schon den datapuffersize haben!!
+    //data muss schon den datapuffersize haben!!
 
-    AssertEncoding(databuffer, this.FieldSize);
-    var eccsize = this.FieldSize - databuffer.Length - 1;
-
+    AssertEncoding(data, this.FieldSize);
+    var eccsize = this.FieldSize - data.Length - 1;
+ 
+    var length = data.Length;
     var ecc = new byte[eccsize];
-    var length = databuffer.Length;
-    var data = databuffer.ToArray();
-    var multiplier = ToMultiplier(data.Length);
+    var multiplier = this.ToMultiplier(data.Length);
 
     byte r, ecc0 = 0;
     for (var i = 0; i < length - 1; i++)
@@ -278,7 +277,7 @@ public class RSEncoding
       ecc[j] ^= this.GField.Multiply(multiplier[j], r);
 
     var result = new byte[data.Length + ecc.Length];
-    Array.Copy(data, result, data.Length);
+    Array.Copy(data.ToArray(), result, data.Length);
     Array.Copy(ecc, 0, result, data.Length, ecc.Length);
 
     return result;
@@ -571,7 +570,7 @@ public class RSEncoding
     var result = new byte[] { this.GField.Exp[0], 1 };
 
     for (var i = 1; i < count; i++)
-      result = PolyMult(result, [this.GField.Exp[i], 1]);
+      result = this.PolyMult(result, [this.GField.Exp[i], 1]);
 
     return result;
   }
@@ -757,13 +756,13 @@ public class RSEncoding
 
     var eccsize = fieldsize - databuffer.Length - 1;
 
-    if (eccsize < 4 || eccsize > fieldsize / 2)
+    if (eccsize < 4 || eccsize > fieldsize >> 1)
       throw new ArgumentOutOfRangeException(nameof(databuffer),
           $"{nameof(eccsize)} < 4 or {nameof(eccsize)} > {nameof(fieldsize)} has failed!");
 
-    if (databuffer.Length + eccsize != fieldsize - 1)
-      throw new ArgumentOutOfRangeException(
-        nameof(databuffer), $"{nameof(databuffer)}.Length + {nameof(eccsize)} != {nameof(fieldsize)} - 1!");
+    //if (databuffer.Length + eccsize != fieldsize - 1)
+    //  throw new ArgumentOutOfRangeException(
+    //    nameof(databuffer), $"{nameof(databuffer)}.Length + {nameof(eccsize)} != {nameof(fieldsize)} - 1!");
   }
 
   private static void AssertRSEncoding(int fieldsize) =>
@@ -823,7 +822,7 @@ public class RSEncoding
   }
 
   private static void AssertPackageData(
-         string src, string dest, RsInfo rsinfo, bool delete_dest = true)
+    string src, string dest, RsInfo rsinfo, bool delete_dest = true)
   {
     AssertPackageData(src, dest, delete_dest);
     ArgumentNullException.ThrowIfNull(rsinfo);
@@ -913,6 +912,10 @@ public class RSEncoding
     if (fieldsize < MIN_FIELD_SIZE)
       throw new ArgumentOutOfRangeException(
         nameof(fieldsize), $"{nameof(fieldsize)} < {MIN_FIELD_SIZE}!");
+
+    if (fieldsize > MAX_FIELD_SIZE)
+      throw new ArgumentOutOfRangeException(
+        nameof(fieldsize), $"{nameof(fieldsize)} > {MAX_FIELD_SIZE}!");
 
     if (!int.IsPow2(fieldsize)) throw new ArgumentOutOfRangeException(
       nameof(fieldsize), $"{nameof(fieldsize)} is not a Power of Two!");
